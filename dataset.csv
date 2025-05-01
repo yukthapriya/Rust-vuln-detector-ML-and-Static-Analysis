@@ -1,0 +1,13 @@
+unsafe_block,path_traversal,command_injection,label
+1,0,0,unsafe
+1,0,0,unsafe
+1,0,0,unsafe
+1,1,0,unsafe
+1,0,0,unsafe
+1,0,1,unsafe
+0,0,1,safe
+0,0,0,safe
+0,1,0,safe
+0,0,0,safe
+0,0,0,safe
+0,0,0,safe

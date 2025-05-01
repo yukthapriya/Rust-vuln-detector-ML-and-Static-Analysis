@@ -1,0 +1,868 @@
+file_path,buffer_overflow,sql_injection,xss,command_injection,path_traversal,memory_leak,integer_overflow,race_condition,use_after_free,null_ptr_deref,uninit_memory,double_free,format_string,insecure_crypto,insecure_deserialization,improper_error_handling,incorrect_lifetime,unsafe_ffi,type_confusion,side_channel,dos,improper_input_validation,insecure_randomness,hardcoded_secrets,logging_sensitive_info,insecure_dependency,improper_privileges,business_logic_flaw,unvalidated_recursion,unbounded_allocation,unsafe_blocks,code_snippet
+src/analysis/mod.rs,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,0,"pub mod static_analysis;
+pub mod ast_visitor;
+pub mod ir_analysis;
+"
+src/vuln_detector.rs,false,false,false,true,true,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,0,"use std::fs::File;
+use std::io::{self, Read};
+use regex::Regex;
+use std::process::Command;
+
+pub fn detect_vulnerabilities(file_path: &str) -> io::Result<()> {
+    // Open the file
+    let mut file = File::open(file_path)?;
+    let mut content = String::new();
+    file.read_to_string(&mut content)?;
+
+    // Regex pattern to match 'unsafe' keyword in the code
+    let unsafe_pattern = Regex::new(r""unsafe"").unwrap();
+    
+    // Search for the pattern in the content
+    if unsafe_pattern.is_match(&content) {
+        println!(""Warning: Unsafe code detected in file: {}"", file_path);
+       // Generate LLVM IR for the unsafe code
+        let llvm_ir_path = file_path.replace("".rs"", "".ll"");
+        let status = Command::new(""rustc"")
+            .arg(""--emit=llvm-ir"")
+            .arg(file_path)
+            .arg(""-o"")
+            .arg(&llvm_ir_path)
+            .status()?;
+        
+        if status.success() {
+            println!(""LLVM IR generated at: {}"", llvm_ir_path);
+        } else {
+            eprintln!(""Failed to generate LLVM IR for file: {}"", 
+file_path);
+        }    
+   } else {
+        println!(""No unsafe code detected in file: {}"", file_path);
+    }
+
+    Ok(())
+}
+
+"
+src/vulnerability_detectors.rs,false,false,false,true,true,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,0,"use std::fs::File;
+use std::io::{self, Read, Write};
+use regex::Regex;
+use std::process::Command;
+
+pub fn detect_vulnerabilities(file_path: &str) -> io::Result<()> {
+    // Open the file
+    let mut file = File::open(file_path)?;
+    let mut content = String::new();
+    file.read_to_string(&mut content)?;
+
+    // Regex pattern to match 'unsafe' keyword in the code
+    let unsafe_pattern = Regex::new(r""unsafe"").unwrap();
+    
+    // Search for the pattern in the content
+    if unsafe_pattern.is_match(&content) {
+        println!(""Warning: Unsafe code detected in file: {}"", file_path);
+       // Generate LLVM IR for the unsafe code
+        let llvm_ir_path = file_path.replace("".rs"", "".ll"");
+        let status = Command::new(""rustc"")
+            .arg(""--emit=llvm-ir"")
+            .arg(file_path)
+            .arg(""-o"")
+            .arg(&llvm_ir_path)
+            .status()?;
+        
+        if status.success() {
+            println!(""LLVM IR generated at: {}"", llvm_ir_path);
+        } else {
+            eprintln!(""Failed to generate LLVM IR for file: {}"", 
+file_path);
+        }    
+   } else {
+        println!(""No unsafe code detected in file: {}"", file_path);
+    }
+
+    Ok(())
+}
+
+"
+src/static_analysis.rs,true,true,true,true,true,true,false,true,false,false,false,true,true,true,true,false,false,false,false,false,false,false,true,false,true,false,true,true,false,false,0,"// use std::fs;
+
+// pub fn analyze_file(file_path: &str) -> (f64, f64, f64, String) {
+//     let content = fs::read_to_string(file_path).expect(""Unable to read file"");
+
+//     // Static analysis checks (converted to f64)
+//     let unsafe_block = if content.contains(""unsafe"") { 1.0 } else { 0.0 };
+//     let path_traversal = if content.contains(""File::open"") { 1.0 } else { 0.0 };
+//     let command_injection = if content.contains(""Command::new"") { 1.0 } else { 0.0 };
+
+//     // Get the file's label (safe or unsafe based on the directory)
+//     let label = if file_path.contains(""unsafe"") {
+//         ""unsafe"".to_string()
+//     } else {
+//         ""safe"".to_string()
+//     };
+
+//     // Print detected vulnerabilities
+//     if unsafe_block == 1.0 {
+//         println!(""Unsafe block found in {}"", file_path);
+//     }
+//     if path_traversal == 1.0 {
+//         println!(""Potential path traversal in {}"", file_path);
+//     }
+//     if command_injection == 1.0 {
+//         println!(""Potential command injection in {}"", file_path);
+//     }
+
+//     (unsafe_block, path_traversal, command_injection, label)
+// }
+
+// pub fn analyze_files_in_directory(directory_path: &str) -> Vec<(f64, f64, f64, String)> {
+//     let paths = fs::read_dir(directory_path).expect(""Unable to read directory"");
+//     let mut features = Vec::new();
+
+//     for path in paths {
+//         let path = path.expect(""Unable to read path"").path();
+//         if path.extension().and_then(|e| e.to_str()) == Some(""rs"") {
+//             println!(""Analyzing file: {:?}"", path);
+//             let file_features = analyze_file(path.to_str().unwrap());
+//             features.push(file_features);
+//         }
+//     }
+
+//     features
+// }
+
+// pub fn analyze_code_snippet(snippet: &str) -> (f64, f64, f64) {
+//     // Static analysis checks for a single code snippet
+//     let unsafe_block = if snippet.contains(""unsafe"") { 1.0 } else { 0.0 };
+//     let path_traversal = if snippet.contains(""File::open"") { 1.0 } else { 0.0 };
+//     let command_injection = if snippet.contains(""Command::new"") { 1.0 } else { 0.0 };
+
+//     // Print detected vulnerabilities
+//     if unsafe_block == 1.0 {
+//         println!(""Unsafe block found in snippet"");
+//     }
+//     if path_traversal == 1.0 {
+//         println!(""Potential path traversal in snippet"");
+//     }
+//     if command_injection == 1.0 {
+//         println!(""Potential command injection in snippet"");
+//     }
+
+//     (unsafe_block, path_traversal, command_injection)
+// }
+
+// mod vulnerability_detectors;
+// use vulnerability_detectors::*;
+use std::fs;
+use std::path::{Path, PathBuf};
+use syn::{parse_file, visit::Visit};
+use regex::Regex;
+use anyhow::Result;
+
+#[derive(Debug, Default)]
+pub struct CodeAnalysis {
+    // Vulnerability flags
+    pub buffer_overflow: bool,
+    pub sql_injection: bool,
+    pub xss: bool,
+    pub command_injection: bool,
+    pub path_traversal: bool,
+    pub memory_leak: bool,
+    pub integer_overflow: bool,
+    pub race_condition: bool,
+    pub use_after_free: bool,
+    pub null_ptr_deref: bool,
+    pub uninit_memory: bool,
+    pub double_free: bool,
+    pub format_string: bool,
+    pub insecure_crypto: bool,
+    pub insecure_deserialization: bool,
+    pub improper_error_handling: bool,
+    pub incorrect_lifetime: bool,
+    pub unsafe_ffi: bool,
+    pub type_confusion: bool,
+    pub side_channel: bool,
+    pub dos: bool,
+    pub improper_input_validation: bool,
+    pub insecure_randomness: bool,
+    pub hardcoded_secrets: bool,
+    pub logging_sensitive_info: bool,
+    pub insecure_dependency: bool,
+    pub improper_privileges: bool,
+    pub business_logic_flaw: bool,
+    pub unvalidated_recursion: bool,
+    pub unbounded_allocation: bool,
+    
+    // Additional metadata
+    pub unsafe_blocks: usize,
+    pub code_snippet: String,
+    pub file_path: PathBuf,
+}
+
+impl CodeAnalysis {
+    pub fn new(file_path: PathBuf, code: String) -> Self {
+        Self {
+            file_path,
+            code_snippet: code,
+            ..Default::default()
+        }
+    }
+}
+
+pub fn analyze_file(file_path: &Path) -> Result<CodeAnalysis> {
+    let code = fs::read_to_string(file_path)?;
+    let mut analysis = CodeAnalysis::new(file_path.to_path_buf(), code.clone());
+    
+    // Parse AST for complex checks
+    let ast = parse_file(&code)?;
+    let mut visitor = SecurityVisitor::new(&mut analysis);
+    visitor.visit_file(&ast);
+
+    // Pattern-based checks
+    analysis.buffer_overflow = detect_buffer_overflow(&code);
+    analysis.sql_injection = detect_sql_injection(&code);
+    analysis.xss = detect_xss(&code);
+    analysis.command_injection = detect_command_injection(&code);
+    analysis.path_traversal = detect_path_traversal(&code);
+    analysis.memory_leak = detect_memory_leak(&code);
+    analysis.integer_overflow = detect_integer_overflow(&code);
+    analysis.race_condition = detect_race_condition(&code);
+    analysis.double_free = detect_double_free(&code);
+    analysis.format_string = detect_format_string_vuln(&code);
+    analysis.insecure_crypto = detect_insecure_crypto(&code);
+    analysis.insecure_deserialization = detect_insecure_deserialization(&code);
+    analysis.insecure_randomness = detect_insecure_randomness(&code);
+    analysis.hardcoded_secrets = detect_hardcoded_secrets(&code);
+    analysis.logging_sensitive_info = detect_sensitive_logging(&code);
+    analysis.insecure_dependency = detect_insecure_dependencies(&code);
+    analysis.improper_privileges = detect_privilege_issues(&code);
+    analysis.business_logic_flaw = detect_business_logic_flaws(&code);
+    analysis.unvalidated_recursion = detect_recursion_issues(&code);
+    analysis.unbounded_allocation = detect_unbounded_allocation(&code);
+    // analysis.unbounded_allocation = detect_memory_allocation(&code);
+
+    Ok(analysis)
+}
+
+struct SecurityVisitor<'a> {
+    analysis: &'a mut CodeAnalysis,
+}
+
+impl<'a> SecurityVisitor<'a> {
+    fn new(analysis: &'a mut CodeAnalysis) -> Self {
+        Self { analysis }
+    }
+}
+impl<'ast> Visit<'ast> for SecurityVisitor<'_> {
+    // Replace visit_item_unsafe with visit_expr_unsafe
+    fn visit_expr_unsafe(&mut self, _: &'ast syn::ExprUnsafe) {
+        self.analysis.unsafe_blocks += 1;
+    }
+
+
+// impl<'ast> Visit<'ast> for SecurityVisitor<'_> {
+//     fn visit_item_unsafe(&mut self, _: &'ast syn::ItemUnsafe) {
+//         self.analysis.unsafe_blocks += 1;
+//     }
+    
+    // fn visit_expr_unsafe(&mut self, _: &'ast syn::ExprUnsafe) {
+    //     self.analysis.unsafe_blocks += 1;
+    // }
+
+    fn visit_expr_call(&mut self, expr: &'ast syn::ExprCall) {
+        // Detect potentially dangerous function calls
+        if let syn::Expr::Path(path) = &*expr.func {
+            let path_str = path.path.segments.iter()
+                .map(|s| s.ident.to_string())
+                .collect::<Vec<_>>()
+                .join(""::"");
+            
+            // Detect specific dangerous patterns
+            if path_str.contains(""unsafe"") {
+                self.analysis.unsafe_ffi = true;
+            }
+            if path_str.contains(""transmute"") {
+                self.analysis.type_confusion = true;
+            }
+        }
+        syn::visit::visit_expr_call(self, expr);
+    }
+}
+
+// Detection functions
+fn detect_buffer_overflow(code: &str) -> bool {
+    Regex::new(r""(?i)(memcpy|memmove|memset|gets|strcpy|strcat|sprintf|vsprintf)"")
+        .unwrap().is_match(code)
+}
+// Add these implementations
+fn detect_command_injection(code: &str) -> bool {
+    Regex::new(r""(?i)Command::new|std::process::Command"").unwrap().is_match(code)
+}
+
+fn detect_path_traversal(code: &str) -> bool {
+    Regex::new(r""(?i)File::open|std::fs::read"").unwrap().is_match(code)
+}
+
+fn detect_integer_overflow(code: &str) -> bool {
+    Regex::new(r""as\s+(u8|u16|u32|u64|usize|i8|i16|i32|i64|isize)"").unwrap().is_match(code)
+}
+
+// Add other missing detection functions following this pattern
+fn detect_sql_injection(code: &str) -> bool {
+    Regex::new(r""(?i)(SELECT|INSERT|UPDATE|DELETE).*\+.*\b(user|password|input)\b"")
+        .unwrap().is_match(code)
+}
+
+fn detect_xss(code: &str) -> bool {
+    Regex::new(r""(?i)(innerHTML|outerHTML|document\.write).*\+.*\b(user|input)\b"")
+        .unwrap().is_match(code)
+}
+
+fn detect_memory_leak(code: &str) -> bool {
+    Regex::new(r""(?i)(Box::leak|mem::forget|Rc::new|Arc::new).*\(.*\)"")
+        .unwrap().is_match(code)
+}
+
+fn detect_race_condition(code: &str) -> bool {
+    Regex::new(r""(?i)(unsafe|RefCell|Cell|static mut)"")
+        .unwrap().is_match(code)
+}
+
+fn detect_use_after_free(code: &str) -> bool {
+    Regex::new(r""(?i)(transmute|from_raw_parts|from_raw)"")
+        .unwrap().is_match(code)
+}
+// Add these implementations:
+fn detect_double_free(code: &str) -> bool {
+    Regex::new(r""(?i)(Box::from_raw|mem::forget|ManuallyDrop)"").unwrap().is_match(code)
+}
+
+fn detect_format_string_vuln(code: &str) -> bool {
+    Regex::new(r#""(?i)(println!|format!|panic!).*\{.*:.*\}""#).unwrap().is_match(code)
+}
+
+fn detect_insecure_crypto(code: &str) -> bool {
+    Regex::new(r""(?i)(md5|sha1|des|rc4)"").unwrap().is_match(code)
+}
+
+fn detect_insecure_deserialization(code: &str) -> bool {
+    Regex::new(r""(?i)serde_json::from_str|bincode::deserialize"").unwrap().is_match(code)
+}
+
+fn detect_insecure_randomness(code: &str) -> bool {
+    Regex::new(r""(?i)rand::thread_rng"").unwrap().is_match(code)
+}
+
+fn detect_hardcoded_secrets(code: &str) -> bool {
+    Regex::new(r#""(?i)""(API_KEY|SECRET|PASSWORD|PRIVATE_KEY)\s*=\s*""[^""]+""""#).unwrap().is_match(code)
+}
+
+fn detect_sensitive_logging(code: &str) -> bool {
+    Regex::new(r""(?i)(log::info!|log::debug!).*(password|secret|token)"").unwrap().is_match(code)
+}
+
+fn detect_insecure_dependencies(code: &str) -> bool {
+    Regex::new(r#""""([a-zA-Z0-9_-]+)""\s*=\s*""\*""""#).unwrap().is_match(code)
+}
+
+fn detect_privilege_issues(code: &str) -> bool {
+    Regex::new(r""(?i)(sudo|chmod|chown)"").unwrap().is_match(code)
+}
+
+fn detect_business_logic_flaws(code: &str) -> bool {
+    Regex::new(r""(?i)unwrap\(\)|expect\("").unwrap().is_match(code)
+}
+
+fn detect_recursion_issues(code: &str) -> bool {
+    Regex::new(r""(?i)fn\s+\w+\(.*\)\s*->\s*\w+\s*\{.*\w+\(.*\)"").unwrap().is_match(code)
+}
+
+fn detect_unbounded_allocation(code: &str) -> bool {
+    Regex::new(r""(?i)Vec::with_capacity\(\d+\)"").unwrap().is_match(code)
+}
+// Add similar detection functions for other vulnerabilities..."
+src/main.rs,true,false,false,false,true,false,false,true,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,0,"// // // src/main.rs
+
+// // use std::collections::HashMap;
+// // use std::path::Path;
+// // use linfa::prelude::Predict;
+// // use ndarray::ArrayView;
+// // use linfa::metrics::ToConfusionMatrix;
+// // use csv::StringRecord; // Import StringRecord
+
+// // mod ml;
+
+// // fn main() {
+// //     let metadata_path = Path::new(""dataset.csv"");
+
+// //     if !metadata_path.exists() {
+// //         println!(""dataset.csv not found in the project root. Please ensure it exists."");
+// //         return;
+// //     } else {
+// //         println!(""dataset.csv found in the project root."");
+// //     }
+
+// //     if let Ok((features, labels, _records)) = ml::read_data_from_csv(metadata_path.to_str().unwrap()) {
+// //         println!(""Features Vec: {:?}"", features);
+// //         println!(""Labels Vec: {:?}"", labels);
+
+// //         if features.is_empty() || labels.is_empty() {
+// //             eprintln!(""Error: Features or labels are empty."");
+// //             return;
+// //         }
+
+// //         if let Ok((decision_tree_model, logistic_model, linear_model, kmeans_model)) = ml::train_models(features.clone(), labels.clone()) {
+// //             let new_features_array = features.slice(ndarray::s![0..2, ..]).to_owned();
+// //             let new_features_view: ArrayView<f64, ndarray::Dim<[usize; 2]>> = new_features_array.view();
+
+// //             let decision_tree_prediction = decision_tree_model.predict(new_features_view);
+// //             let logistic_prediction = logistic_model.predict(new_features_view);
+// //             let linear_prediction = linear_model.predict(new_features_view);
+// //             let kmeans_prediction = kmeans_model.predict(new_features_view);
+
+// //             println!(""Decision Tree Predictions: {:?}"", decision_tree_prediction.targets());
+// //             println!(""Logistic Regression Predictions: {:?}"", logistic_prediction.targets());
+// //             println!(""Linear Regression Predictions: {:?}"", linear_prediction.targets());
+// //             println!(""K-Means Cluster Assignments: {:?}"", kmeans_prediction.targets());
+
+// //             // Create vulnerability name mapping
+// //             let vulnerability_names: HashMap<usize, &str> = HashMap::from([
+// //                 (0, ""Buffer Overflow""),
+// //                 (1, ""SQL Injection""),
+// //                 (2, ""Cross-Site Scripting""),
+// //                 (3, ""Command Injection""),
+// //                 (4, ""Path Traversal""),
+// //                 (5, ""Memory Leak""),
+// //                 // Add more mappings as needed
+// //             ]);
+
+// //             println!(""Vulnerability Report:"");
+// //             for (i, &prediction) in decision_tree_prediction.targets().iter().enumerate() {
+// //                 let vulnerability = if prediction == 1 {
+// //                     match vulnerability_names.get(&i) {
+// //                         Some(name) => *name,
+// //                         None => ""Unsafe"",
+// //                     }
+// //                 } else {
+// //                     ""Safe""
+// //                 };
+// //                 println!(""Data Point {}: Predicted as {}"", i + 1, vulnerability);
+// //             }
+
+// //             for (i, &prediction) in logistic_prediction.targets().iter().enumerate() {
+// //                 let vulnerability = if prediction == 1 {
+// //                     match vulnerability_names.get(&i) {
+// //                         Some(name) => *name,
+// //                         None => ""Unsafe"",
+// //                     }
+// //                 } else {
+// //                     ""Safe""
+// //                 };
+// //                 println!(""Data Point {}: Predicted as {}"", i + 1, vulnerability);
+// //             }
+
+// //             for (i, &prediction) in kmeans_prediction.targets().iter().enumerate() {
+// //                 println!(""Data Point {}: Assigned to Cluster {}"", i + 1, prediction);
+// //             }
+
+// //             println!(""Linear Regression Values: {:?}"", linear_prediction.targets());
+
+// //             // Model Evaluation
+// //             println!(""\nModel Evaluation:"");
+
+// //             let decision_tree_confusion = decision_tree_prediction.confusion_matrix(&labels.slice(ndarray::s![0..2])).expect(""Failed to create confusion matrix"");
+// //             println!(""Decision Tree: Accuracy: {}, Precision: {}, Recall: {}, F1-score: {}"",
+// //                      decision_tree_confusion.accuracy(), decision_tree_confusion.precision(), decision_tree_confusion.recall(), decision_tree_confusion.f1_score());
+
+// //             let logistic_confusion = logistic_prediction.confusion_matrix(&labels.slice(ndarray::s![0..2])).expect(""Failed to create confusion matrix"");
+// //             println!(""Logistic Regression: Accuracy: {}, Precision: {}, Recall: {}, F1-score: {}"",
+// //                      logistic_confusion.accuracy(), logistic_confusion.precision(), logistic_confusion.recall(), logistic_confusion.f1_score());
+
+// //         } else {
+// //             eprintln!(""Failed to train models"");
+// //         }
+// //     } else {
+// //         eprintln!(""Failed to read data from CSV"");
+// //     }
+// // }
+
+
+// use std::collections::HashMap;
+// use std::path::Path;
+// use linfa::prelude::Predict;
+// use ndarray::ArrayView;
+// use csv::Writer;
+// use anyhow::Result;
+
+// mod ml;
+// mod static_analysis;
+// mod vuln_detector;
+// mod feature_extractor;
+
+// fn main() -> Result<()> {
+//     let metadata_path = Path::new(""dataset.csv"");
+    
+//     if !metadata_path.exists() {
+//         println!(""dataset.csv not found in the project root."");
+//         return Ok(());
+//     }
+
+//     let (features, labels, records) = ml::read_data_from_csv(metadata_path.to_str().unwrap())?;
+    
+//     let (decision_tree_model, logistic_model, linear_model, kmeans_model) = 
+//         ml::train_models(features.clone(), labels.clone())?;
+
+//     // Generate CSV report
+//     generate_vulnerability_report(
+//         &records,
+//         &decision_tree_model,
+//         &logistic_model,
+//         &kmeans_model,
+//         &features,
+//         &labels
+//     )?;
+
+//     Ok(())
+// }
+
+// fn generate_vulnerability_report(
+//     records: &[csv::StringRecord],
+//     decision_tree_model: &ml::DecisionTree<f64, usize>,
+//     logistic_model: &ml::FittedLogisticRegression<f64, usize>,
+//     kmeans_model: &ml::KMeans<f64, ml::L2Dist>,
+//     features: &ndarray::Array2<f64>,
+//     labels: &ndarray::Array1<usize>,
+// ) -> Result<()> {
+//     let mut wtr = Writer::from_path(""vulnerability_report.csv"")?;
+//     wtr.write_record(&[
+//         ""file_path"",
+//         ""code_snippet"",
+//         ""label"",
+//         ""decision_tree_pred"",
+//         ""logistic_pred"",
+//         ""kmeans_cluster"",
+//         ""unsafe_blocks"",
+//         ""path_traversal"",
+//         ""command_injection""
+//     ])?;
+
+//     // let vulnerability_names = HashMap::from([
+//     //     (0, ""Buffer Overflow""),
+//     //     (1, ""SQL Injection""),
+//     //     (2, ""XSS""),
+//     //     (3, ""Command Injection""),
+//     //     (4, ""Path Traversal""),
+//     //     (5, ""Memory Leak""),
+//     // ]);
+// // Update in src/main.rs
+// let vulnerability_names: HashMap<usize, &str> = HashMap::from([
+//     (0, ""Buffer Overflow""),
+//     (1, ""SQL Injection""),
+//     (2, ""Cross-Site Scripting (XSS)""),
+//     (3, ""Command Injection""),
+//     (4, ""Path Traversal""),
+//     (5, ""Memory Leak""),
+//     (6, ""Integer Overflow/Underflow""),
+//     (7, ""Race Condition""),
+//     (8, ""Use-After-Free""),
+//     (9, ""Null Pointer Dereference""),
+//     (10, ""Uninitialized Memory Access""),
+//     (11, ""Double Free""),
+//     (12, ""Format String Vulnerability""),
+//     (13, ""Insecure Cryptographic Implementation""),
+//     (14, ""Insecure Deserialization""),
+//     (15, ""Improper Error Handling""),
+//     (16, ""Incorrect Lifetime Management""),
+//     (17, ""Unsafe FFI Usage""),
+//     (18, ""Type Confusion""),
+//     (19, ""Side-channel Attack Surface""),
+//     (20, ""Denial of Service (DoS)""),
+//     (21, ""Improper Input Validation""),
+//     (22, ""Insecure Randomness""),
+//     (23, ""Hardcoded Secrets""),
+//     (24, ""Logging Sensitive Information""),
+//     (25, ""Insecure Dependency""),
+//     (26, ""Improper Privilege Management""),
+//     (27, ""Business Logic Flaw""),
+//     (28, ""Unvalidated Recursion Depth""),
+//     (29, ""Unbounded Memory Allocation"")
+// ]);
+//     for (i, record) in records.iter().enumerate() {
+//         let file_path = record.get(0).unwrap();
+//         let code = std::fs::read_to_string(file_path)?;
+        
+//         let features_row = features.row(i);
+//         let predictions = ml::predict_single(
+//             decision_tree_model,
+//             logistic_model,
+//             kmeans_model,
+//             features_row
+//         );
+
+//         wtr.write_record(&[
+//             file_path,
+//             &code,
+//             &labels[i].to_string(),
+//             &predictions.decision_tree,
+//             &predictions.logistic_regression,
+//             &predictions.kmeans_cluster,
+//             &features_row[0].to_string(),
+//             &features_row[1].to_string(),
+//             &features_row[2].to_string(),
+//         ])?;
+//     }
+
+//     wtr.flush()?;
+//     println!(""Vulnerability report generated: vulnerability_report.csv"");
+//     Ok(())
+// }
+
+
+use std::collections::HashMap;
+// use std::path::Path;
+use anyhow::Result;
+use csv::Writer;
+// use walkdir::WalkDir;
+mod vulnerability_detectors; // Import the new module
+
+// mod ml;
+// mod static_analysis;
+use crate::static_analysis::{analyze_file, CodeAnalysis};
+
+mod ml;
+mod static_analysis;
+
+const VULN_REPORT: &str = ""security_report.csv"";
+
+fn main() -> Result<()> {
+    let analyses = analyze_codebase(""src"")?;
+    generate_security_report(&analyses)?;
+    
+    Ok(())
+}
+
+fn analyze_codebase(dir_path: &str) -> Result<Vec<CodeAnalysis>> {
+    let mut analyses = Vec::new();
+    for entry in walkdir::WalkDir::new(dir_path) {
+        let entry = entry?;
+        if entry.file_type().is_file() && entry.path().extension().map_or(false, |e| e == ""rs"") {
+            match analyze_file(entry.path()) {
+                Ok(analysis) => analyses.push(analysis),
+                Err(e) => eprintln!(""Error analyzing {}: {}"", entry.path().display(), e),
+            }
+        }
+    }
+    Ok(analyses)
+}
+
+fn generate_security_report(analyses: &[CodeAnalysis]) -> Result<()> {
+    let mut wtr = Writer::from_path(VULN_REPORT)?;
+    
+    // CSV header
+    wtr.write_record(&[
+        ""file_path"", ""buffer_overflow"", ""sql_injection"", ""xss"", ""command_injection"",
+        ""path_traversal"", ""memory_leak"", ""integer_overflow"", ""race_condition"",
+        ""use_after_free"", ""null_ptr_deref"", ""uninit_memory"", ""double_free"",
+        ""format_string"", ""insecure_crypto"", ""insecure_deserialization"",
+        ""improper_error_handling"", ""incorrect_lifetime"", ""unsafe_ffi"",
+        ""type_confusion"", ""side_channel"", ""dos"", ""improper_input_validation"",
+        ""insecure_randomness"", ""hardcoded_secrets"", ""logging_sensitive_info"",
+        ""insecure_dependency"", ""improper_privileges"", ""business_logic_flaw"",
+        ""unvalidated_recursion"", ""unbounded_allocation"", ""unsafe_blocks"", ""code_snippet""
+    ])?;
+
+    // Vulnerability metadata
+    let _vuln_names: HashMap<u8, &str> = HashMap::from_iter(vec![
+        (0, ""Buffer Overflow""),
+        // Add all other mappings...
+    ]);
+
+    for analysis in analyses {
+        wtr.write_record(&[
+            analysis.file_path.display().to_string(),
+            analysis.buffer_overflow.to_string(),
+            analysis.sql_injection.to_string(),
+            analysis.xss.to_string(),
+            analysis.command_injection.to_string(),
+            analysis.path_traversal.to_string(),
+            analysis.memory_leak.to_string(),
+            analysis.integer_overflow.to_string(),
+            analysis.race_condition.to_string(),
+            analysis.use_after_free.to_string(),
+            analysis.null_ptr_deref.to_string(),
+            analysis.uninit_memory.to_string(),
+            analysis.double_free.to_string(),
+            analysis.format_string.to_string(),
+            analysis.insecure_crypto.to_string(),
+            analysis.insecure_deserialization.to_string(),
+            analysis.improper_error_handling.to_string(),
+            analysis.incorrect_lifetime.to_string(),
+            analysis.unsafe_ffi.to_string(),
+            analysis.type_confusion.to_string(),
+            analysis.side_channel.to_string(),
+            analysis.dos.to_string(),
+            analysis.improper_input_validation.to_string(),
+            analysis.insecure_randomness.to_string(),
+            analysis.hardcoded_secrets.to_string(),
+            analysis.logging_sensitive_info.to_string(),
+            analysis.insecure_dependency.to_string(),
+            analysis.improper_privileges.to_string(),
+            analysis.business_logic_flaw.to_string(),
+            analysis.unvalidated_recursion.to_string(),
+            analysis.unbounded_allocation.to_string(),
+            analysis.unsafe_blocks.to_string(),
+            analysis.code_snippet.clone(), 
+        ])?;
+    }
+
+    wtr.flush()?;
+    println!(""Security report generated: {}"", VULN_REPORT);
+    Ok(())
+}"
+src/feature_extractor.rs,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,0,"// src/feature_extractor.rs
+
+use syn::{parse_file, visit::Visit, ItemFn};
+use std::fs::File;
+use std::io::Read;
+use std::path::Path;
+
+pub fn count_functions(file_path: &Path) -> Result<usize, Box<dyn std::error::Error>> {
+    let mut file = File::open(file_path)?;
+    let mut src = String::new();
+    file.read_to_string(&mut src)?;
+
+    let ast = parse_file(&src)?;
+
+    let mut visitor = FunctionVisitor { function_count: 0 };
+    visitor.visit_file(&ast);
+
+    Ok(visitor.function_count)
+}
+
+struct FunctionVisitor {
+    function_count: usize,
+}
+
+impl<'ast> Visit<'ast> for FunctionVisitor {
+    fn visit_item_fn(&mut self, _i: &'ast ItemFn) {
+        self.function_count += 1;
+    }
+}"
+src/ml.rs,true,false,false,false,true,false,false,true,false,false,false,false,true,false,false,false,false,false,false,false,false,false,true,false,false,false,false,true,false,false,0,"
+
+// src/ml.rs
+// Add at the top
+// use linfa::traits::Predict;
+use std::fs::File;
+use std::io::BufReader;
+use csv::{ReaderBuilder, StringRecord}; // Import StringRecord
+use linfa::prelude::*;
+use linfa_trees::DecisionTree;
+use linfa_logistic::LogisticRegression;
+use linfa_logistic::FittedLogisticRegression;
+use linfa_linear::FittedLinearRegression;
+use linfa_clustering::{KMeans, KMeansParams};
+use linfa_nn::distance::L2Dist;
+use ndarray::{Array2, Array1};
+use rand::thread_rng;
+use std::error::Error;
+use linfa::prelude::Fit;
+// mod vulnerability_detectors;
+// use vulnerability_detectors::*; 
+
+
+pub fn train_models(features: Array2<f64>, labels: Array1<usize>) -> Result<(DecisionTree<f64, usize>, FittedLogisticRegression<f64, usize>, FittedLinearRegression<f64>, KMeans<f64, L2Dist>), Box<dyn Error>> {
+    let continuous_labels: Array1<f64> = labels.mapv(|x| x as f64);
+
+    let dataset_classification = Dataset::from((features.clone(), labels));
+    let dataset_regression = Dataset::from((features.clone(), continuous_labels));
+    let dataset_clustering = Dataset::from(features.clone());
+
+    let decision_tree_model = DecisionTree::params().fit(&dataset_classification)?;
+    let logistic_model = LogisticRegression::default().fit(&dataset_classification)?;
+    let linear_model = linfa_linear::LinearRegression::default().fit(&dataset_regression)?;
+    let kmeans_model = KMeansParams::new(2, thread_rng(), L2Dist).fit(&dataset_clustering)?;
+
+    Ok((decision_tree_model, logistic_model, linear_model, kmeans_model))
+}
+
+pub fn read_data_from_csv(file_path: &str) -> Result<(Array2<f64>, Array1<usize>, Vec<StringRecord>), Box<dyn Error>> { // Modified return type
+    let file = File::open(file_path)?;
+    let reader = BufReader::new(file);
+    let mut rdr = ReaderBuilder::new().from_reader(reader);
+
+    let mut features_vec: Vec<Vec<f64>> = Vec::new();
+    let mut labels_vec: Vec<usize> = Vec::new();
+    let mut records: Vec<StringRecord> = Vec::new(); // Vec to store StringRecords
+
+    let mut first_row = true;
+    for result in rdr.records() {
+        match result {
+            Ok(record) => {
+                println!(""Record: {:?}"", record); // Debug print
+                if first_row {
+                    first_row = false;
+                    continue;
+                }
+                let unsafe_block: f64 = record.get(0).unwrap().parse().unwrap();
+                let path_traversal: f64 = record.get(1).unwrap().parse().unwrap();
+                let command_injection: f64 = record.get(2).unwrap().parse().unwrap();
+
+                // Handle missing columns based on your dataset.csv content.
+                // If you are using the dataset.csv file with only 4 columns,
+                // remove the function_count and clippy_warnings handling.
+                let label: usize = match record.get(3).unwrap() {
+                    ""safe"" => 0,
+                    ""unsafe"" => 1,
+                    _ => return Err(""Invalid label"".into()),
+                };
+
+                features_vec.push(vec![unsafe_block, path_traversal, command_injection]);
+                labels_vec.push(label);
+                records.push(record.clone()); // Store the StringRecord
+            }
+            Err(e) => {
+                eprintln!(""Error reading record: {}"", e);
+            }
+        }
+    }
+
+    println!(""Features Vec: {:?}"", features_vec); // Debug print
+    println!(""Labels Vec: {:?}"", labels_vec); // Debug print
+
+    let features_array: Array2<f64> = Array2::from_shape_vec(
+        (features_vec.len(), features_vec[0].len()),
+        features_vec.into_iter().flatten().collect(),
+    )?;
+
+    let labels_array: Array1<usize> = Array1::from_vec(labels_vec);
+
+    return Ok((features_array, labels_array, records)); // Return the StringRecords
+}
+
+// use linfa_trees::DecisionTree;
+// use linfa_logistic::{LogisticRegression, FittedLogisticRegression};
+// use linfa_clustering::KMeans;
+// use linfa_nn::distance::L2Dist;
+// use ndarray::ArrayView1;
+
+// pub struct ModelPredictions {
+//     pub decision_tree: String,
+//     pub logistic_regression: String,
+//     pub kmeans_cluster: String,
+// }
+
+// pub fn predict_single(
+//     decision_tree: &DecisionTree<f64, usize>,
+//     logistic_model: &FittedLogisticRegression<f64, usize>,
+//     kmeans_model: &KMeans<f64, L2Dist>,
+//     features: ArrayView1<f64>,
+// ) -> ModelPredictions {
+//     let features_array = features.into_owned().insert_axis(ndarray::Axis(0));
+//     let features_view = features_array.view();
+    
+//     ModelPredictions {
+//         decision_tree: decision_tree.predict(features_view).targets()[0].to_string(),
+//         logistic_regression: logistic_model.predict(features_view).targets()[0].to_string(),
+//         kmeans_cluster: kmeans_model.predict(features_view).targets()[0].to_string(),
+//     }
+// }"
