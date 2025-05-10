@@ -1,5 +1,5 @@
 
-# 🔐 Rust Vulnerability Detector using Machine Learning & Static Analysis
+# 🔐 Rust Vuln Detector using Machine Learning & Static Analysis
 
 This project presents a hybrid tool that uses **static analysis** and **machine learning** to detect vulnerabilities in Rust code, focusing on:
 - `unsafe` blocks
