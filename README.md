@@ -1,3 +1,4 @@
+![confusion matrix](https://github.com/user-attachments/assets/234de7a3-dee4-4a66-adef-53895e141cb1)
 # 🔐 Rust Vulnerability Detector using Machine Learning & Static Analysis
 
 This project presents a hybrid tool that uses **static analysis** and **machine learning** to detect vulnerabilities in Rust code, focusing on:
