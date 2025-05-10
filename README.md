@@ -37,18 +37,6 @@ Rust is known for performance and memory safety, but improper use of `unsafe` co
 
 ---
 
-## 📂 Project Structure
-
-.
-├── dataset/ # Safe and unsafe Rust code samples
-├── metadata.csv # Annotated features for each snippet
-├── data_loader.rs # Converts analysis results to features
-├── static_analysis.rs # Custom AST analysis using syn crate
-├── ml.rs # Logistic regression training & prediction
-├── security_report.csv # Output with predictions and scores
-└── README.md
----
-
 ## 🧪 How It Works
 
 1. **Static Analysis** → Run Clippy & custom AST checker
